@@ -11,7 +11,7 @@ func TestPartitionSet(t *testing.T) {
 	partitionCount := 1024
 	maxDifference := 100
 
-	p := NewPartitioned(1, fnv.New64(), partitionCount)
+	p := New(1, fnv.New64()).Partitioned(partitionCount)
 
 	p.Add("node1", 100)
 	p.Add("node2", 200)
@@ -47,7 +47,7 @@ func TestPartitionSet(t *testing.T) {
 }
 
 func BenchmarkAddRemove(b *testing.B) {
-	p := NewPartitioned(1.25, fnv.New64(), 23)
+	p := New(1.25, fnv.New64()).Partitioned(23)
 
 	b.ResetTimer()
 
@@ -61,7 +61,7 @@ func BenchmarkAddRemove(b *testing.B) {
 }
 
 func BenchmarkLocateKey(b *testing.B) {
-	p := NewPartitioned(1.25, fnv.New64(), 23)
+	p := New(1.25, fnv.New64()).Partitioned(23)
 	p.Add("nodeA", 20)
 	p.Add("nodeB", 20)
 
