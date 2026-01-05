@@ -10,7 +10,7 @@ type PartitionedConsh struct {
 	allocations []*Node
 }
 
-func NewPartitionedConsh(consh Consh, partitionCount int) PartitionedConsh {
+func NewPartitioned(consh Consh, partitionCount int) PartitionedConsh {
 	hashes := make([]uint64, partitionCount)
 
 	for i := range partitionCount {

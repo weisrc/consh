@@ -36,7 +36,7 @@ func New(loadFactor float64, hasher hash.Hash64) Consh {
 }
 
 func (c Consh) Partitioned(partitionCount int) PartitionedConsh {
-	return NewPartitionedConsh(c, partitionCount)
+	return NewPartitioned(c, partitionCount)
 }
 
 func (c *Consh) Add(nodeKey string, nodeWeight int) bool {
