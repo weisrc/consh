@@ -97,7 +97,7 @@ func (p *Partitioned) Allocations() []*Node {
 	return p.allocations
 }
 
-func (p *Partitioned) OwnedPartitions(key string) map[int]struct{} {
+func (p *Partitioned) Partitions(key string) map[int]struct{} {
 	partitions := make(map[int]struct{})
 	node := p.consh.Get(key)
 	if node == nil {

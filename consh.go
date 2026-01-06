@@ -20,18 +20,18 @@ type VirtualNode struct {
 }
 
 type Consh struct {
-	loadFactor  float64
 	hasher      hash.Hash64
+	loadFactor  float64
 	ring        []VirtualNode
 	nodes       map[string]*Node
 	needsSort   bool
 	needsFilter bool
 }
 
-func New(loadFactor float64, hasher hash.Hash64) *Consh {
+func New(hasher hash.Hash64, loadFactor float64) *Consh {
 	return &Consh{
-		loadFactor:  loadFactor,
 		hasher:      hasher,
+		loadFactor:  loadFactor,
 		ring:        []VirtualNode{},
 		nodes:       map[string]*Node{},
 		needsSort:   false,
@@ -124,7 +124,7 @@ func (c *Consh) Prepare(totalLoad int) {
 
 	for _, node := range c.nodes {
 		node.Load = 0
-		node.maxLoad = int(baseMaxLoad * float64(node.Weight))
+		node.maxLoad = int(math.Ceil(baseMaxLoad * float64(node.Weight)))
 	}
 }
 

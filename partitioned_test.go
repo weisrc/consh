@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-func TestOwnedPartitions(t *testing.T) {
+func TestPartitions(t *testing.T) {
 	partitionCount := 1024
 	maxDifference := 100
 
-	p := New(1.1, fnv.New64()).Partitioned(partitionCount)
+	p := New(fnv.New64(), 1.25).Partitioned(partitionCount)
 
 	p.Add("node1", 100)
 	p.Add("node2", 200)
 
-	set1 := p.OwnedPartitions("node1")
-	set2 := p.OwnedPartitions("node2")
+	set1 := p.Partitions("node1")
+	set2 := p.Partitions("node2")
 
 	if len(set1)+len(set2) != partitionCount {
 		t.Errorf("expected all partitions to be assigned, got %d + %d", len(set1), len(set2))
@@ -28,14 +28,14 @@ func TestOwnedPartitions(t *testing.T) {
 	}
 
 	p.Remove("node1")
-	set2 = p.OwnedPartitions("node2")
+	set2 = p.Partitions("node2")
 	if len(set2) != partitionCount {
 		t.Errorf("expected all partitions to be assigned to node2, got %d", len(set2))
 	}
 
 	p.Add("node3", 100)
-	set2 = p.OwnedPartitions("node2")
-	set3 := p.OwnedPartitions("node3")
+	set2 = p.Partitions("node2")
+	set3 := p.Partitions("node3")
 
 	if len(set2)+len(set3) != partitionCount {
 		t.Errorf("expected all partitions to be assigned after re-adding node, got %d + %d", len(set2), len(set3))
@@ -47,7 +47,7 @@ func TestOwnedPartitions(t *testing.T) {
 }
 
 func TestLocateN(t *testing.T) {
-	p := New(1.5, fnv.New64()).Partitioned(128)
+	p := New(fnv.New64(), 1.25).Partitioned(128)
 	p.Add("node1", 3)
 	p.Add("node2", 3)
 	p.Add("node3", 3)
@@ -76,7 +76,7 @@ func TestLocateN(t *testing.T) {
 }
 
 func BenchmarkAddRemove(b *testing.B) {
-	p := New(1.25, fnv.New64()).Partitioned(100)
+	p := New(fnv.New64(), 1.25).Partitioned(100)
 
 	b.ResetTimer()
 
@@ -90,7 +90,7 @@ func BenchmarkAddRemove(b *testing.B) {
 }
 
 func BenchmarkLocate(b *testing.B) {
-	p := New(1.25, fnv.New64()).Partitioned(100)
+	p := New(fnv.New64(), 1.25).Partitioned(100)
 	p.Add("nodeA", 20)
 	p.Add("nodeB", 20)
 
@@ -102,7 +102,7 @@ func BenchmarkLocate(b *testing.B) {
 }
 
 func BenchmarkLocateN(b *testing.B) {
-	p := New(1.25, fnv.New64()).Partitioned(100)
+	p := New(fnv.New64(), 1.25).Partitioned(100)
 
 	for i := range 10 {
 		p.Add("node"+strconv.Itoa(i), 20)

@@ -7,7 +7,7 @@ import (
 )
 
 func TestConshAdd(t *testing.T) {
-	consh := New(1.5, fnv.New64())
+	consh := New(fnv.New64(), 1.25)
 	consh.Add("node1", 3)
 	nodes := consh.List()
 	if len(nodes) != 1 {
@@ -22,7 +22,7 @@ func TestConshAdd(t *testing.T) {
 }
 
 func TestConshRemove(t *testing.T) {
-	consh := New(1.5, fnv.New64())
+	consh := New(fnv.New64(), 1.25)
 	consh.Add("node1", 3)
 	consh.Remove("node1")
 	nodes := consh.List()
@@ -32,7 +32,7 @@ func TestConshRemove(t *testing.T) {
 }
 
 func TestConshAllocateMany(t *testing.T) {
-	consh := New(1.5, fnv.New64())
+	consh := New(fnv.New64(), 1.25)
 	consh.Add("node1", 3)
 
 	keys := []string{}
@@ -59,7 +59,7 @@ func TestConshAllocateMany(t *testing.T) {
 }
 
 func TestConshLocateN(t *testing.T) {
-	consh := New(1.5, fnv.New64())
+	consh := New(fnv.New64(), 1.25)
 	consh.Add("node1", 3)
 	consh.Add("node2", 3)
 	consh.Add("node3", 3)
