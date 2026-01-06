@@ -4,13 +4,13 @@ import (
 	"encoding/binary"
 )
 
-type PartitionedConsh struct {
-	consh       Consh
+type Partitioned struct {
+	consh       *Consh
 	hashes      []uint64
 	allocations []*Node
 }
 
-func NewPartitioned(consh Consh, n int) PartitionedConsh {
+func NewPartitioned(consh *Consh, n int) *Partitioned {
 	hashes := make([]uint64, n)
 
 	for i := range n {
@@ -19,48 +19,48 @@ func NewPartitioned(consh Consh, n int) PartitionedConsh {
 		hashes[i] = consh.hasher.Sum64()
 	}
 
-	return PartitionedConsh{
+	return &Partitioned{
 		consh:       consh,
 		hashes:      hashes,
 		allocations: nil,
 	}
 }
 
-func (p *PartitionedConsh) Add(key string, weight int) {
+func (p *Partitioned) Add(key string, weight int) {
 	p.consh.Add(key, weight)
 	p.allocations = nil
 }
 
-func (p *PartitionedConsh) Remove(key string) {
+func (p *Partitioned) Remove(key string) {
 	p.consh.Remove(key)
 	p.allocations = nil
 }
 
-func (p *PartitionedConsh) Get(key string) *Node {
+func (p *Partitioned) Get(key string) *Node {
 	return p.consh.Get(key)
 }
 
-func (p *PartitionedConsh) List() []*Node {
+func (p *Partitioned) List() []*Node {
 	return p.consh.List()
 }
 
-func (p *PartitionedConsh) IndexByHash(hash uint64) int {
+func (p *Partitioned) IndexByHash(hash uint64) int {
 	return int(hash % uint64(len(p.hashes)))
 }
 
-func (p *PartitionedConsh) Index(key string) int {
+func (p *Partitioned) Index(key string) int {
 	return p.IndexByHash(p.consh.HashString(key))
 }
 
-func (p *PartitionedConsh) Owner(index int) *Node {
+func (p *Partitioned) Owner(index int) *Node {
 	return p.Allocations()[index]
 }
 
-func (p *PartitionedConsh) LocateByHash(hash uint64) *Node {
+func (p *Partitioned) LocateByHash(hash uint64) *Node {
 	return p.Owner(p.IndexByHash(hash))
 }
 
-func (p *PartitionedConsh) LocateNByHash(hash uint64, n int) []*Node {
+func (p *Partitioned) LocateNByHash(hash uint64, n int) []*Node {
 	index := p.IndexByHash(hash)
 	nodes := make([]*Node, 0, len(p.consh.nodes))
 	seen := make(map[*Node]struct{})
@@ -80,15 +80,15 @@ func (p *PartitionedConsh) LocateNByHash(hash uint64, n int) []*Node {
 	return nodes
 }
 
-func (p *PartitionedConsh) Locate(key string) *Node {
+func (p *Partitioned) Locate(key string) *Node {
 	return p.LocateByHash(p.consh.HashString(key))
 }
 
-func (p *PartitionedConsh) LocateN(key string, n int) []*Node {
+func (p *Partitioned) LocateN(key string, n int) []*Node {
 	return p.LocateNByHash(p.consh.HashString(key), n)
 }
 
-func (p *PartitionedConsh) Allocations() []*Node {
+func (p *Partitioned) Allocations() []*Node {
 	if p.allocations != nil {
 		return p.allocations
 	}
@@ -97,7 +97,7 @@ func (p *PartitionedConsh) Allocations() []*Node {
 	return p.allocations
 }
 
-func (p *PartitionedConsh) OwnedPartitions(key string) map[int]struct{} {
+func (p *Partitioned) OwnedPartitions(key string) map[int]struct{} {
 	partitions := make(map[int]struct{})
 	node := p.consh.Get(key)
 	if node == nil {

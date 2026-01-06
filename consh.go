@@ -28,8 +28,8 @@ type Consh struct {
 	removeDirty bool
 }
 
-func New(loadFactor float64, hasher hash.Hash64) Consh {
-	return Consh{
+func New(loadFactor float64, hasher hash.Hash64) *Consh {
+	return &Consh{
 		loadFactor:  loadFactor,
 		hasher:      hasher,
 		ring:        []VirtualNode{},
@@ -39,7 +39,7 @@ func New(loadFactor float64, hasher hash.Hash64) Consh {
 	}
 }
 
-func (c Consh) Partitioned(n int) PartitionedConsh {
+func (c *Consh) Partitioned(n int) *Partitioned {
 	return NewPartitioned(c, n)
 }
 
