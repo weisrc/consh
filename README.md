@@ -48,6 +48,17 @@ println("node a has partitions:", len(setA))
 println("node b has partitions:", len(setB))
 ```
 
+## Benchmark
+
+```
+goos: linux
+goarch: amd64
+cpu: Intel(R) Core(TM) i5-8500 CPU @ 3.00GHz
+BenchmarkAddRemove-6      298700                 4002 ns/op
+BenchmarkLocate-6       12279928                99.73 ns/op
+BenchmarkLocateN-6       5545964                233.6 ns/op
+```
+
 ## License
 
 MIT License. See LICENSE file for details.
