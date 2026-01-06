@@ -7,9 +7,11 @@ import (
 )
 
 type Node struct {
-	Key    string
-	Weight int
-	Load   int
+	Key     string
+	Weight  int
+	Load    int
+	maxLoad int
+	removed bool
 }
 
 type VirtualNode struct {
@@ -21,8 +23,9 @@ type Consh struct {
 	loadFactor  float64
 	hasher      hash.Hash64
 	ring        []VirtualNode
-	nodeMap     map[string]*Node
-	baseMaxLoad float64
+	nodes       map[string]*Node
+	addDirty    bool
+	removeDirty bool
 }
 
 func New(loadFactor float64, hasher hash.Hash64) Consh {
@@ -30,155 +33,202 @@ func New(loadFactor float64, hasher hash.Hash64) Consh {
 		loadFactor:  loadFactor,
 		hasher:      hasher,
 		ring:        []VirtualNode{},
-		nodeMap:     map[string]*Node{},
-		baseMaxLoad: 0,
+		nodes:       map[string]*Node{},
+		addDirty:    false,
+		removeDirty: false,
 	}
 }
 
-func (c Consh) Partitioned(partitionCount int) PartitionedConsh {
-	return NewPartitioned(c, partitionCount)
+func (c Consh) Partitioned(n int) PartitionedConsh {
+	return NewPartitioned(c, n)
 }
 
-func (c *Consh) Add(nodeKey string, nodeWeight int) bool {
-	if nodeWeight <= 0 || nodeWeight > math.MaxUint16 {
+func (c *Consh) Add(key string, weight int) bool {
+	if weight <= 0 || weight > math.MaxUint16 {
 		panic("weight must be between 1 and 65535")
 	}
 
-	if _, exists := c.nodeMap[nodeKey]; exists {
+	if _, exists := c.nodes[key]; exists {
 		return false
 	}
 
 	node := &Node{
-		Key:    nodeKey,
-		Weight: nodeWeight,
-		Load:   0,
+		Key:     key,
+		Weight:  weight,
+		Load:    0,
+		maxLoad: 0,
+		removed: false,
 	}
 
-	c.nodeMap[nodeKey] = node
+	c.nodes[key] = node
 
 	c.hasher.Reset()
-	c.hasher.Write([]byte(nodeKey))
+	c.hasher.Write([]byte(key))
 
-	for i := range nodeWeight {
+	for i := range weight {
 		c.hasher.Write([]byte{byte(i), byte(i >> 8)})
-		hash := c.hasher.Sum64()
-		vNode := VirtualNode{
-			hash: hash,
+		c.ring = append(c.ring, VirtualNode{
+			hash: c.hasher.Sum64(),
 			node: node,
-		}
-		c.ring = append(c.ring, vNode)
+		})
 	}
 
+	c.addDirty = true
 	return true
 }
 
-func (c *Consh) Get(nodeKey string) *Node {
-	return c.nodeMap[nodeKey]
+func (c *Consh) Get(key string) *Node {
+	return c.nodes[key]
 }
 
 func (c *Consh) List() []*Node {
-	nodes := make([]*Node, 0, len(c.nodeMap))
-	for _, node := range c.nodeMap {
+	nodes := make([]*Node, 0, len(c.nodes))
+	for _, node := range c.nodes {
 		nodes = append(nodes, node)
 	}
 	return nodes
 }
 
-func (c *Consh) Remove(nodeKey string) bool {
-	node, exists := c.nodeMap[nodeKey]
+func (c *Consh) Remove(key string) bool {
+	node, exists := c.nodes[key]
 	if !exists {
 		return false
 	}
-	delete(c.nodeMap, nodeKey)
-	filtered := make([]VirtualNode, 0, len(c.ring))
-	for _, vNode := range c.ring {
-		if vNode.node != node {
-			filtered = append(filtered, vNode)
-		}
-	}
-	c.ring = filtered
+	node.removed = true
+	delete(c.nodes, key)
+
+	c.removeDirty = true
 	return true
 }
 
-func (c *Consh) Begin(totalLoad int) {
-	c.baseMaxLoad = float64(totalLoad) * c.loadFactor / float64(len(c.ring))
+func (c *Consh) Prepare(totalLoad int) {
+	if c.removeDirty {
+		newRing := c.ring[:0]
+		for _, vNode := range c.ring {
+			if !vNode.node.removed {
+				newRing = append(newRing, vNode)
+			}
+		}
+		c.ring = newRing
+		c.removeDirty = false
+	}
 
-	for _, node := range c.nodeMap {
+	if c.addDirty {
+		sort.Slice(c.ring, func(i, j int) bool {
+			return c.ring[i].hash < c.ring[j].hash
+		})
+		c.addDirty = false
+	}
+
+	baseMaxLoad := float64(totalLoad) * c.loadFactor / float64(len(c.ring))
+
+	for _, node := range c.nodes {
 		node.Load = 0
+		node.maxLoad = int(baseMaxLoad * float64(node.Weight))
 	}
-
-	sort.Slice(c.ring, func(i, j int) bool {
-		return c.ring[i].hash < c.ring[j].hash
-	})
 }
 
-func (c *Consh) MapAllocateKeys(resourceKeys [][]byte) []*Node {
-	mapped := make([]*Node, len(resourceKeys))
+func (c *Consh) AllocateMany(keys []string) []*Node {
+	mapped := make([]*Node, len(keys))
 
-	if len(c.nodeMap) == 0 {
+	if len(c.nodes) == 0 {
 		return mapped
 	}
 
-	c.Begin(len(resourceKeys))
+	c.Prepare(len(keys))
 
-	for i, key := range resourceKeys {
-		mapped[i] = c.AllocateKey(key)
+	for i, key := range keys {
+		mapped[i] = c.Allocate(key)
 	}
 
 	return mapped
 }
 
-func (c *Consh) AllocateKey(resourceKey []byte) *Node {
-	return c.AllocateHash(c.hash(resourceKey))
+func (c *Consh) Allocate(key string) *Node {
+	return c.AllocateByHash(c.HashString(key))
 }
 
-func (c *Consh) LocateKey(resourceKey []byte) *Node {
-	return c.LocateHash(c.hash(resourceKey))
+func (c *Consh) Locate(key string) *Node {
+	return c.LocateByHash(c.HashString(key))
 }
 
-func (c *Consh) MapAllocateHashes(resourceHashes []uint64) []*Node {
-	mapped := make([]*Node, len(resourceHashes))
+func (c *Consh) LocateN(key string, n int) []*Node {
+	return c.LocateNByHash(c.HashString(key), n)
+}
 
-	if len(c.nodeMap) == 0 {
+func (c *Consh) AllocateManyByHash(hashes []uint64) []*Node {
+	mapped := make([]*Node, len(hashes))
+
+	if len(c.nodes) == 0 {
 		return mapped
 	}
 
-	c.Begin(len(resourceHashes))
+	c.Prepare(len(hashes))
 
-	for i, hash := range resourceHashes {
-		mapped[i] = c.AllocateHash(hash)
+	for i, hash := range hashes {
+		mapped[i] = c.AllocateByHash(hash)
 	}
 
 	return mapped
 }
 
-func (c *Consh) AllocateHash(resourceHash uint64) *Node {
-	node := c.LocateHash(resourceHash)
+func (c *Consh) AllocateByHash(hash uint64) *Node {
+	node := c.LocateByHash(hash)
 	if node == nil {
-		panic("load factor too low")
+		panic("no available node found")
 	}
 	node.Load++
 	return node
 }
 
-func (c *Consh) LocateHash(resourceHash uint64) *Node {
+func (c *Consh) LocateByHash(hash uint64) *Node {
 	index := sort.Search(len(c.ring), func(j int) bool {
-		return c.ring[j].hash >= resourceHash
+		return c.ring[j].hash >= hash
 	})
-	if index >= len(c.ring) {
-		index = 0
-	}
-	for i := 0; i < len(c.ring); i++ {
-		vNode := c.ring[(index+i)%len(c.ring)]
-		maxLoad := int(c.baseMaxLoad * float64(vNode.node.Weight))
-		if vNode.node.Load <= maxLoad {
+
+	for count := 0; count < len(c.ring); count++ {
+		if index >= len(c.ring) {
+			index = 0
+		}
+		vNode := c.ring[index]
+		index++
+		if vNode.node.Load < vNode.node.maxLoad {
 			return vNode.node
 		}
 	}
 	return nil
 }
 
-func (c *Consh) hash(data []byte) uint64 {
+func (c *Consh) LocateNByHash(hash uint64, n int) []*Node {
+	nodes := make([]*Node, 0, n)
+	seen := make(map[*Node]struct{})
+
+	index := sort.Search(len(c.ring), func(j int) bool {
+		return c.ring[j].hash >= hash
+	})
+
+	for count := 0; count < len(c.ring) && len(nodes) < n; count++ {
+		if index >= len(c.ring) {
+			index = 0
+		}
+		vNode := c.ring[index]
+		index++
+		if _, exists := seen[vNode.node]; exists {
+			continue
+		}
+		if len(nodes) != 0 || vNode.node.Load < vNode.node.maxLoad {
+			nodes = append(nodes, vNode.node)
+			seen[vNode.node] = struct{}{}
+		}
+	}
+	return nodes
+}
+
+func (c *Consh) HashString(data string) uint64 {
+	return c.Hash([]byte(data))
+}
+
+func (c *Consh) Hash(data []byte) uint64 {
 	c.hasher.Reset()
 	c.hasher.Write(data)
 	return c.hasher.Sum64()

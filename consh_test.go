@@ -2,10 +2,11 @@ package consh
 
 import (
 	"hash/fnv"
+	"strconv"
 	"testing"
 )
 
-func TestAdd(t *testing.T) {
+func TestConshAdd(t *testing.T) {
 	consh := New(1.5, fnv.New64())
 	consh.Add("node1", 3)
 	nodes := consh.List()
@@ -20,7 +21,7 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-func TestRemove(t *testing.T) {
+func TestConshRemove(t *testing.T) {
 	consh := New(1.5, fnv.New64())
 	consh.Add("node1", 3)
 	consh.Remove("node1")
@@ -30,16 +31,16 @@ func TestRemove(t *testing.T) {
 	}
 }
 
-func TestMapAllocateKeys(t *testing.T) {
+func TestConshAllocateMany(t *testing.T) {
 	consh := New(1.5, fnv.New64())
 	consh.Add("node1", 3)
 
-	keys := make([][]byte, 10)
-	for i := 0; i < 10; i++ {
-		keys[i] = []byte{byte(i)}
+	keys := []string{}
+	for i := range 10 {
+		keys = append(keys, "key"+strconv.Itoa(i))
 	}
 
-	allocations := consh.MapAllocateKeys(keys)
+	allocations := consh.AllocateMany(keys)
 	if len(allocations) != 10 {
 		t.Errorf("expected 10 assignments, got %d", len(allocations))
 	}
@@ -49,10 +50,41 @@ func TestMapAllocateKeys(t *testing.T) {
 		}
 	}
 	consh.Remove("node1")
-	allocations = consh.MapAllocateKeys(keys)
+	allocations = consh.AllocateMany(keys)
 	for _, node := range allocations {
 		if node != nil {
 			t.Errorf("expected all assignments to be nil, got '%s'", node.Key)
 		}
+	}
+}
+
+func TestConshLocateN(t *testing.T) {
+	consh := New(1.5, fnv.New64())
+	consh.Add("node1", 3)
+	consh.Add("node2", 3)
+	consh.Add("node3", 3)
+
+	consh.AllocateMany([]string{"mykey", "anotherkey"})
+
+	nodes := consh.LocateN("mykey", 2)
+	if len(nodes) != 2 {
+		t.Errorf("expected 2 nodes, got %d", len(nodes))
+	}
+	if nodes[0] == nodes[1] {
+		t.Errorf("expected different nodes, got the same node '%s'", nodes[0].Key)
+	}
+
+	if nodes[0] != consh.Locate("mykey") {
+		t.Errorf("expected first located node to match Locate result, got '%s' and '%s'", nodes[0].Key, consh.Locate("mykey").Key)
+	}
+
+	nodes = consh.LocateN("mykey", 5)
+	if len(nodes) != 3 {
+		t.Errorf("expected 3 nodes, got %d", len(nodes))
+	}
+
+	nodes = consh.LocateN("mykey", 0)
+	if len(nodes) != 0 {
+		t.Errorf("expected 0 nodes, got %d", len(nodes))
 	}
 }
