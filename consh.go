@@ -24,8 +24,8 @@ type Consh struct {
 	hasher      hash.Hash64
 	ring        []VirtualNode
 	nodes       map[string]*Node
-	addDirty    bool
-	removeDirty bool
+	needsSort   bool
+	needsFilter bool
 }
 
 func New(loadFactor float64, hasher hash.Hash64) *Consh {
@@ -34,8 +34,8 @@ func New(loadFactor float64, hasher hash.Hash64) *Consh {
 		hasher:      hasher,
 		ring:        []VirtualNode{},
 		nodes:       map[string]*Node{},
-		addDirty:    false,
-		removeDirty: false,
+		needsSort:   false,
+		needsFilter: false,
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *Consh) Add(key string, weight int) bool {
 		})
 	}
 
-	c.addDirty = true
+	c.needsSort = true
 	return true
 }
 
@@ -97,12 +97,12 @@ func (c *Consh) Remove(key string) bool {
 	node.removed = true
 	delete(c.nodes, key)
 
-	c.removeDirty = true
+	c.needsFilter = true
 	return true
 }
 
 func (c *Consh) Prepare(totalLoad int) {
-	if c.removeDirty {
+	if c.needsFilter {
 		newRing := c.ring[:0]
 		for _, vNode := range c.ring {
 			if !vNode.node.removed {
@@ -110,14 +110,14 @@ func (c *Consh) Prepare(totalLoad int) {
 			}
 		}
 		c.ring = newRing
-		c.removeDirty = false
+		c.needsFilter = false
 	}
 
-	if c.addDirty {
+	if c.needsSort {
 		sort.Slice(c.ring, func(i, j int) bool {
 			return c.ring[i].hash < c.ring[j].hash
 		})
-		c.addDirty = false
+		c.needsSort = false
 	}
 
 	baseMaxLoad := float64(totalLoad) * c.loadFactor / float64(len(c.ring))
@@ -129,19 +129,19 @@ func (c *Consh) Prepare(totalLoad int) {
 }
 
 func (c *Consh) AllocateMany(keys []string) []*Node {
-	mapped := make([]*Node, len(keys))
+	nodes := make([]*Node, len(keys))
 
 	if len(c.nodes) == 0 {
-		return mapped
+		return nodes
 	}
 
 	c.Prepare(len(keys))
 
 	for i, key := range keys {
-		mapped[i] = c.Allocate(key)
+		nodes[i] = c.Allocate(key)
 	}
 
-	return mapped
+	return nodes
 }
 
 func (c *Consh) Allocate(key string) *Node {
@@ -157,19 +157,19 @@ func (c *Consh) LocateN(key string, n int) []*Node {
 }
 
 func (c *Consh) AllocateManyByHash(hashes []uint64) []*Node {
-	mapped := make([]*Node, len(hashes))
+	nodes := make([]*Node, len(hashes))
 
 	if len(c.nodes) == 0 {
-		return mapped
+		return nodes
 	}
 
 	c.Prepare(len(hashes))
 
 	for i, hash := range hashes {
-		mapped[i] = c.AllocateByHash(hash)
+		nodes[i] = c.AllocateByHash(hash)
 	}
 
-	return mapped
+	return nodes
 }
 
 func (c *Consh) AllocateByHash(hash uint64) *Node {
