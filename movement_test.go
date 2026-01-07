@@ -7,25 +7,13 @@ import (
 	"testing"
 )
 
-func countRelocations(oldAlloc, newAlloc []*Node) int {
-	relocations := 0
-	for i := range oldAlloc {
-		if oldAlloc[i] != newAlloc[i] {
-			relocations++
-		}
-	}
-	return relocations
-}
-
-func TestRelocation(t *testing.T) {
+func TestMovement(t *testing.T) {
 	epsillon := 0.2
 	loadFactor := 1.0 + epsillon
 	paritionCount := 1024
 	nodeCount := 64
 	averageLoad := float64(paritionCount) / float64(nodeCount)
-
-	// expected upper bound on the number of relocations
-	maxRelocations := int(math.Ceil(averageLoad / (epsillon * epsillon)))
+	maxMoves := int(math.Ceil(averageLoad / (epsillon * epsillon)))
 
 	p := New(fnv.New64(), loadFactor).Partitioned(paritionCount)
 
@@ -37,11 +25,15 @@ func TestRelocation(t *testing.T) {
 
 	check := func() {
 		newAllocations := p.Allocations()
-		relocations := countRelocations(allocations, newAllocations)
+		moves := 0
+		for i := range paritionCount {
+			if allocations[i] != newAllocations[i] {
+				moves++
+			}
+		}
 		allocations = newAllocations
-
-		if relocations > maxRelocations {
-			t.Errorf("expected less than %d relocations, got %d", maxRelocations, relocations)
+		if moves > maxMoves {
+			t.Errorf("expected less than %d, got %d", maxMoves, moves)
 		}
 	}
 
