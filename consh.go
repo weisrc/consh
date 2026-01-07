@@ -16,7 +16,9 @@ type Consh struct {
 	needsFilter bool
 }
 
-// Create a new Consh instance
+// Create a new Consh instance.
+// The inputed hasher instance should not be used elsewhere.
+// Consh is not safe for concurrent use. Use `RWMutex` if needed.
 func New(hasher hash.Hash64, loadFactor float64) *Consh {
 	return &Consh{
 		hasher:      hasher,

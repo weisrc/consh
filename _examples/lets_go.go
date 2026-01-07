@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	h := fnv.New64()       // use xxhash for better distribution
+	h := fnv.New64()       // should use xxhash for better distribution
 	c := consh.New(h, 1.1) // create consh with load factor 1.1
 	c.Add("a", 100)        // add node0 with weight 20
 	c.Add("b", 100)        // the weight is the replication factor
