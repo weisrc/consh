@@ -29,24 +29,6 @@ func (n *Node) MaxLoad() int {
 	return n.maxLoad
 }
 
-// Get a snapshot of the physical node's state.
-func (n *Node) Snapshot() NodeSnapshot {
-	return NodeSnapshot{
-		Key:     n.key,
-		Weight:  n.weight,
-		Load:    n.load,
-		MaxLoad: n.maxLoad,
-	}
-}
-
-// Snapshot of a Node's state
-type NodeSnapshot struct {
-	Key     string
-	Weight  int
-	Load    int
-	MaxLoad int
-}
-
 // Virtual node in the consistent hashing ring
 type VirtualNode struct {
 	hash uint64
