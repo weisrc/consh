@@ -54,9 +54,9 @@ println("node b has partitions:", len(setB))
 goos: linux
 goarch: amd64
 cpu: Intel(R) Core(TM) i5-8500 CPU @ 3.00GHz
-BenchmarkAddRemove-6      298700                 4002 ns/op
-BenchmarkLocate-6       12279928                99.73 ns/op
-BenchmarkLocateN-6       5545964                233.6 ns/op
+BenchmarkAddRemove-6      304366                 3932 ns/op
+BenchmarkLocate-6       12159878                97.33 ns/op
+BenchmarkLocateN-6       5523733                218.2 ns/op
 ```
 
 ## License
