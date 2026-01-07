@@ -6,6 +6,7 @@ import (
 	"sort"
 )
 
+// Physical node in the consistent hashing ring
 type Node struct {
 	Key     string
 	Weight  int
@@ -14,11 +15,13 @@ type Node struct {
 	removed bool
 }
 
+// Virtual node in the consistent hashing ring
 type VirtualNode struct {
 	hash uint64
 	node *Node
 }
 
+// Consistent hashing ring
 type Consh struct {
 	hasher      hash.Hash64
 	loadFactor  float64
@@ -28,6 +31,7 @@ type Consh struct {
 	needsFilter bool
 }
 
+// Create a new Consh instance
 func New(hasher hash.Hash64, loadFactor float64) *Consh {
 	return &Consh{
 		hasher:      hasher,
@@ -39,10 +43,15 @@ func New(hasher hash.Hash64, loadFactor float64) *Consh {
 	}
 }
 
+// Create a new Partitioned consistent hashing ring
 func (c *Consh) Partitioned(n int) *Partitioned {
 	return NewPartitioned(c, n)
 }
 
+// Add a new physical node with key and a weight.
+// The weight determines the number of virtual nodes created for this physical node.
+// The weight must be between 1 and 65535.
+// Returns false if the node with the same key already exists.
 func (c *Consh) Add(key string, weight int) bool {
 	if weight <= 0 || weight > math.MaxUint16 {
 		panic("weight must be between 1 and 65535")
@@ -77,10 +86,13 @@ func (c *Consh) Add(key string, weight int) bool {
 	return true
 }
 
+// Get a physical node by its key.
+// Returns nil if the node does not exist.
 func (c *Consh) Get(key string) *Node {
 	return c.nodes[key]
 }
 
+// List all physical nodes.
 func (c *Consh) List() []*Node {
 	nodes := make([]*Node, 0, len(c.nodes))
 	for _, node := range c.nodes {
@@ -89,6 +101,7 @@ func (c *Consh) List() []*Node {
 	return nodes
 }
 
+// Remove a physical node by its key.
 func (c *Consh) Remove(key string) bool {
 	node, exists := c.nodes[key]
 	if !exists {
@@ -101,6 +114,7 @@ func (c *Consh) Remove(key string) bool {
 	return true
 }
 
+// Prepare for allocations.
 func (c *Consh) Prepare(totalLoad int) {
 	if c.needsFilter {
 		newRing := c.ring[:0]
@@ -128,6 +142,8 @@ func (c *Consh) Prepare(totalLoad int) {
 	}
 }
 
+// Allocate multiple keys to their respective physical nodes.
+// Returns the keys mapped to their allocated nodes.
 func (c *Consh) AllocateMany(keys []string) []*Node {
 	nodes := make([]*Node, len(keys))
 
@@ -144,18 +160,23 @@ func (c *Consh) AllocateMany(keys []string) []*Node {
 	return nodes
 }
 
+// Allocate a key to its respective physical node.
+// Must call Prepare before using.
 func (c *Consh) Allocate(key string) *Node {
 	return c.AllocateByHash(c.HashString(key))
 }
 
+// Locate the physical node for a key.
 func (c *Consh) Locate(key string) *Node {
 	return c.LocateByHash(c.HashString(key))
 }
 
+// Locate N physical nodes for a key.
 func (c *Consh) LocateN(key string, n int) []*Node {
 	return c.LocateNByHash(c.HashString(key), n)
 }
 
+// Allocate multiple hashes to their respective physical nodes.
 func (c *Consh) AllocateManyByHash(hashes []uint64) []*Node {
 	nodes := make([]*Node, len(hashes))
 
@@ -172,6 +193,7 @@ func (c *Consh) AllocateManyByHash(hashes []uint64) []*Node {
 	return nodes
 }
 
+// Allocate a hash to its respective physical node.
 func (c *Consh) AllocateByHash(hash uint64) *Node {
 	node := c.LocateByHash(hash)
 	if node == nil {
@@ -181,6 +203,7 @@ func (c *Consh) AllocateByHash(hash uint64) *Node {
 	return node
 }
 
+// Locate the physical node for a hash.
 func (c *Consh) LocateByHash(hash uint64) *Node {
 	index := sort.Search(len(c.ring), func(j int) bool {
 		return c.ring[j].hash >= hash
@@ -199,6 +222,7 @@ func (c *Consh) LocateByHash(hash uint64) *Node {
 	return nil
 }
 
+// Locate N physical nodes for a hash.
 func (c *Consh) LocateNByHash(hash uint64, n int) []*Node {
 	nodes := make([]*Node, 0, n)
 	seen := make(map[*Node]struct{})
@@ -224,10 +248,12 @@ func (c *Consh) LocateNByHash(hash uint64, n int) []*Node {
 	return nodes
 }
 
+// Hash a string to uint64.
 func (c *Consh) HashString(data string) uint64 {
 	return c.Hash([]byte(data))
 }
 
+// Hash a byte slice to uint64.
 func (c *Consh) Hash(data []byte) uint64 {
 	c.hasher.Reset()
 	c.hasher.Write(data)
