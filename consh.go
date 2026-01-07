@@ -6,21 +6,6 @@ import (
 	"sort"
 )
 
-// Physical node in the consistent hashing ring
-type Node struct {
-	Key     string
-	Weight  int
-	Load    int
-	maxLoad int
-	removed bool
-}
-
-// Virtual node in the consistent hashing ring
-type VirtualNode struct {
-	hash uint64
-	node *Node
-}
-
 // Consistent hashing ring
 type Consh struct {
 	hasher      hash.Hash64
@@ -62,9 +47,9 @@ func (c *Consh) Add(key string, weight int) bool {
 	}
 
 	node := &Node{
-		Key:     key,
-		Weight:  weight,
-		Load:    0,
+		key:     key,
+		weight:  weight,
+		load:    0,
 		maxLoad: 0,
 		removed: false,
 	}
@@ -137,8 +122,8 @@ func (c *Consh) Prepare(totalLoad int) {
 	baseMaxLoad := float64(totalLoad) * c.loadFactor / float64(len(c.ring))
 
 	for _, node := range c.nodes {
-		node.Load = 0
-		node.maxLoad = int(math.Ceil(baseMaxLoad * float64(node.Weight)))
+		node.load = 0
+		node.maxLoad = int(math.Ceil(baseMaxLoad * float64(node.weight)))
 	}
 }
 
@@ -199,7 +184,7 @@ func (c *Consh) AllocateByHash(hash uint64) *Node {
 	if node == nil {
 		panic("no available node found")
 	}
-	node.Load++
+	node.load++
 	return node
 }
 
@@ -215,7 +200,7 @@ func (c *Consh) LocateByHash(hash uint64) *Node {
 		}
 		vNode := c.ring[index]
 		index++
-		if vNode.node.Load < vNode.node.maxLoad {
+		if vNode.node.load < vNode.node.maxLoad {
 			return vNode.node
 		}
 	}
@@ -240,7 +225,7 @@ func (c *Consh) LocateNByHash(hash uint64, n int) []*Node {
 		if _, exists := seen[vNode.node]; exists {
 			continue
 		}
-		if len(nodes) != 0 || vNode.node.Load < vNode.node.maxLoad {
+		if len(nodes) != 0 || vNode.node.load < vNode.node.maxLoad {
 			nodes = append(nodes, vNode.node)
 			seen[vNode.node] = struct{}{}
 		}

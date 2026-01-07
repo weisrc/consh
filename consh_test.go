@@ -13,11 +13,11 @@ func TestConshAdd(t *testing.T) {
 	if len(nodes) != 1 {
 		t.Errorf("expected 1 node, got %d", len(nodes))
 	}
-	if nodes[0].Key != "node1" {
-		t.Errorf("expected node id 'node1', got '%s'", nodes[0].Key)
+	if nodes[0].key != "node1" {
+		t.Errorf("expected node id 'node1', got '%s'", nodes[0].key)
 	}
-	if nodes[0].Load != 0 {
-		t.Errorf("expected node load 0, got %d", nodes[0].Load)
+	if nodes[0].load != 0 {
+		t.Errorf("expected node load 0, got %d", nodes[0].load)
 	}
 }
 
@@ -45,15 +45,15 @@ func TestConshAllocateMany(t *testing.T) {
 		t.Errorf("expected 10 assignments, got %d", len(allocations))
 	}
 	for _, node := range allocations {
-		if node.Key != "node1" {
-			t.Errorf("expected all assignments to be 'node1', got '%s'", node.Key)
+		if node.key != "node1" {
+			t.Errorf("expected all assignments to be 'node1', got '%s'", node.key)
 		}
 	}
 	consh.Remove("node1")
 	allocations = consh.AllocateMany(keys)
 	for _, node := range allocations {
 		if node != nil {
-			t.Errorf("expected all assignments to be nil, got '%s'", node.Key)
+			t.Errorf("expected all assignments to be nil, got '%s'", node.key)
 		}
 	}
 }
@@ -71,11 +71,11 @@ func TestConshLocateN(t *testing.T) {
 		t.Errorf("expected 2 nodes, got %d", len(nodes))
 	}
 	if nodes[0] == nodes[1] {
-		t.Errorf("expected different nodes, got the same node '%s'", nodes[0].Key)
+		t.Errorf("expected different nodes, got the same node '%s'", nodes[0].key)
 	}
 
 	if nodes[0] != consh.Locate("mykey") {
-		t.Errorf("expected first located node to match Locate result, got '%s' and '%s'", nodes[0].Key, consh.Locate("mykey").Key)
+		t.Errorf("expected first located node to match Locate result, got '%s' and '%s'", nodes[0].key, consh.Locate("mykey").key)
 	}
 
 	nodes = consh.LocateN("mykey", 5)

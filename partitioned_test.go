@@ -57,11 +57,11 @@ func TestLocateN(t *testing.T) {
 		t.Errorf("expected 2 nodes, got %d", len(nodes))
 	}
 	if nodes[0] == nodes[1] {
-		t.Errorf("expected different nodes, got the same node '%s'", nodes[0].Key)
+		t.Errorf("expected different nodes, got the same node '%s'", nodes[0].key)
 	}
 
 	if nodes[0] != p.Locate("mykey") {
-		t.Errorf("expected first located node to match Locate result, got '%s' and '%s'", nodes[0].Key, p.Locate("mykey").Key)
+		t.Errorf("expected first located node to match Locate result, got '%s' and '%s'", nodes[0].key, p.Locate("mykey").key)
 	}
 
 	nodes = p.LocateN("mykey", 5)
