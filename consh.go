@@ -10,7 +10,7 @@ import (
 type Consh struct {
 	hasher      hash.Hash64
 	loadFactor  float64
-	ring        []VirtualNode
+	ring        []virtualNode
 	nodes       map[string]*Node
 	needsSort   bool
 	needsFilter bool
@@ -23,7 +23,7 @@ func New(hasher hash.Hash64, loadFactor float64) *Consh {
 	return &Consh{
 		hasher:      hasher,
 		loadFactor:  loadFactor,
-		ring:        []VirtualNode{},
+		ring:        []virtualNode{},
 		nodes:       map[string]*Node{},
 		needsSort:   false,
 		needsFilter: false,
@@ -63,7 +63,7 @@ func (c *Consh) Add(key string, weight int) bool {
 
 	for i := range weight {
 		c.hasher.Write([]byte{byte(i), byte(i >> 8)})
-		c.ring = append(c.ring, VirtualNode{
+		c.ring = append(c.ring, virtualNode{
 			hash: c.hasher.Sum64(),
 			node: node,
 		})

@@ -30,7 +30,7 @@ func (n *Node) MaxLoad() int {
 }
 
 // Virtual node in the consistent hashing ring
-type VirtualNode struct {
+type virtualNode struct {
 	hash uint64
 	node *Node
 }
