@@ -65,9 +65,9 @@ fmt.Printf("nodeB has %d partitions\n", len(setB))
 
 All returned `*Node` are still in use and may change their load and max load values. Get and save their values to have a snapshot of them.
 
-Use `sync.Mutex` or `sync.RWMutex` to protect concurrent access to the `Consh` or `PartitionedConsh` instance. Similarly, all returned `*Node` are not thread-safe.
+Use `sync.Mutex` or `sync.RWMutex` to protect concurrent access to the `Consh` or `Partitioned` instance. Similarly, all returned `*Node` are not thread-safe.
 
-## Benchmark
+## Benchmarks
 
 This library aims to be as efficient as possible and yet keep the code simple and readable. Here are some benchmark results:
 
