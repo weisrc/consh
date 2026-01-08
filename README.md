@@ -2,6 +2,8 @@
 
 Consistent Hashing with Bounded Loads in Go.
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/weisrc/consh.svg)](https://pkg.go.dev/github.com/weisrc/consh)
+
 This is an implementation of this [paper](https://arxiv.org/pdf/1608.01350) with support for different number of virtual nodes (weight) per physical node and partitioning.
 
 No hash function is enforced, you can use any hash function that implements `hash.Hash64` interface. However, a good hash function with uniform distribution is recommended for better performance.
