@@ -17,7 +17,7 @@ h := fnv.New64()       // should use xxhash for better distribution
 c := consh.New(h, 1.1) // create consh with load factor 1.1
 c.Add("node0", 100)    // add node0 with weight 100
 c.Add("node1", 100)    // the weight is the replication factor
-c.Add("node2", 200)    // node c is twice more powerful
+c.Add("node2", 200)    // this node is twice more powerful
 
 resources := make([]string, 100000) // create 100k resources
 
