@@ -35,31 +35,31 @@ func (c *Consh) Partitioned(n int) *Partitioned {
 	return NewPartitioned(c, n)
 }
 
-// Add a new physical node with key and a weight.
+// Add a new physical node with the name and weight.
 // The weight determines the number of virtual nodes created for this physical node.
 // The weight must be between 1 and 65535.
-// Returns false if the node with the same key already exists.
-func (c *Consh) Add(key string, weight int) bool {
+// Returns a pointer to the created Node. If nil, node with the same name already exists.
+func (c *Consh) Add(name string, weight int) *Node {
 	if weight <= 0 || weight > math.MaxUint16 {
 		panic("weight must be between 1 and 65535")
 	}
 
-	if _, exists := c.nodes[key]; exists {
-		return false
+	if _, exists := c.nodes[name]; exists {
+		return nil
 	}
 
 	node := &Node{
-		key:     key,
+		name:    name,
 		weight:  weight,
 		load:    0,
 		maxLoad: 0,
 		removed: false,
 	}
 
-	c.nodes[key] = node
+	c.nodes[name] = node
 
 	c.hasher.Reset()
-	c.hasher.Write([]byte(key))
+	c.hasher.Write([]byte(name))
 
 	for i := range weight {
 		c.hasher.Write([]byte{byte(i), byte(i >> 8)})
@@ -70,13 +70,13 @@ func (c *Consh) Add(key string, weight int) bool {
 	}
 
 	c.needsSort = true
-	return true
+	return node
 }
 
-// Get a physical node by its key.
+// Get a physical node with the given name.
 // Returns nil if the node does not exist.
-func (c *Consh) Get(key string) *Node {
-	return c.nodes[key]
+func (c *Consh) Get(name string) *Node {
+	return c.nodes[name]
 }
 
 // List all physical nodes.
@@ -88,17 +88,18 @@ func (c *Consh) List() []*Node {
 	return nodes
 }
 
-// Remove a physical node by its key.
-func (c *Consh) Remove(key string) bool {
-	node, exists := c.nodes[key]
+// Remove a physical node by its name.
+// Returns the removed Node, or nil if the node does not exist.
+func (c *Consh) Remove(name string) *Node {
+	node, exists := c.nodes[name]
 	if !exists {
-		return false
+		return nil
 	}
 	node.removed = true
-	delete(c.nodes, key)
+	delete(c.nodes, name)
 
 	c.needsFilter = true
-	return true
+	return node
 }
 
 // Prepare for allocations.
@@ -129,15 +130,10 @@ func (c *Consh) Prepare(totalLoad int) {
 	}
 }
 
-// Allocate multiple keys to their respective physical nodes.
+// Allocate many physical nodes to resources by their keys.
 // Returns the keys mapped to their allocated nodes.
 func (c *Consh) AllocateMany(keys []string) []*Node {
 	nodes := make([]*Node, len(keys))
-
-	if len(c.nodes) == 0 {
-		return nodes
-	}
-
 	c.Prepare(len(keys))
 
 	for i, key := range keys {
@@ -147,30 +143,25 @@ func (c *Consh) AllocateMany(keys []string) []*Node {
 	return nodes
 }
 
-// Allocate a key to its respective physical node.
+// Allocate a physical node to a resource by its key.
 // Must call Prepare before using.
 func (c *Consh) Allocate(key string) *Node {
 	return c.AllocateByHash(c.HashString(key))
 }
 
-// Locate the physical node for a key.
+// Locate the physical node for a resource by its key.
 func (c *Consh) Locate(key string) *Node {
 	return c.LocateByHash(c.HashString(key))
 }
 
-// Locate N physical nodes for a key.
+// Locate N physical nodes for a resource by its key.
 func (c *Consh) LocateN(key string, n int) []*Node {
 	return c.LocateNByHash(c.HashString(key), n)
 }
 
-// Allocate multiple hashes to their respective physical nodes.
+// Allocate many physical nodes to resources by their hashes.
 func (c *Consh) AllocateManyByHash(hashes []uint64) []*Node {
 	nodes := make([]*Node, len(hashes))
-
-	if len(c.nodes) == 0 {
-		return nodes
-	}
-
 	c.Prepare(len(hashes))
 
 	for i, hash := range hashes {
@@ -180,7 +171,7 @@ func (c *Consh) AllocateManyByHash(hashes []uint64) []*Node {
 	return nodes
 }
 
-// Allocate a hash to its respective physical node.
+// Allocate a physical node to a resource by its hash.
 func (c *Consh) AllocateByHash(hash uint64) *Node {
 	node := c.LocateByHash(hash)
 	if node == nil {
@@ -190,7 +181,7 @@ func (c *Consh) AllocateByHash(hash uint64) *Node {
 	return node
 }
 
-// Locate the physical node for a hash.
+// Locate the physical node for a resource by its hash.
 func (c *Consh) LocateByHash(hash uint64) *Node {
 	index := sort.Search(len(c.ring), func(j int) bool {
 		return c.ring[j].hash >= hash
@@ -209,7 +200,7 @@ func (c *Consh) LocateByHash(hash uint64) *Node {
 	return nil
 }
 
-// Locate N physical nodes for a hash.
+// Locate N physical nodes for a resource by its hash.
 func (c *Consh) LocateNByHash(hash uint64, n int) []*Node {
 	nodes := make([]*Node, 0, n)
 	seen := make(map[*Node]struct{})

@@ -2,16 +2,16 @@ package consh
 
 // Physical node in the consistent hashing ring
 type Node struct {
-	key     string
+	name    string
 	weight  int
 	load    int
 	maxLoad int
 	removed bool
 }
 
-// Get the key of the physical node.
-func (n *Node) Key() string {
-	return n.key
+// Get the name of the physical node.
+func (n *Node) Name() string {
+	return n.name
 }
 
 // Get the weight of the physical node.

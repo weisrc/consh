@@ -8,14 +8,15 @@ import (
 
 func BenchmarkAddRemove(b *testing.B) {
 	p := New(fnv.New64(), 1.25).Partitioned(100)
+	p.Add("nodeA", 20)
 
 	b.ResetTimer()
 
 	for i := 0; b.Loop(); i++ {
-		nodeId := "node" + strconv.Itoa(i)
-		p.Add(nodeId, 20)
+		nodeName := "node" + strconv.Itoa(i)
+		p.Add(nodeName, 20)
 		p.Allocations()
-		p.Remove(nodeId)
+		p.Remove(nodeName)
 		p.Allocations()
 	}
 }

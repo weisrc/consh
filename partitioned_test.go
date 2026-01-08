@@ -6,17 +6,34 @@ import (
 	"testing"
 )
 
-func TestPartitions(t *testing.T) {
+func TestPartitionedList(t *testing.T) {
+	p := New(fnv.New64(), 1.25).Partitioned(128)
+	node1 := p.Add("node1", 3)
+	node2 := p.Add("node2", 5)
+
+	nodes := p.List()
+	if len(nodes) != 2 {
+		t.Errorf("expected 2 nodes, got %d", len(nodes))
+	}
+	if nodes[0] != node1 && nodes[1] != node1 {
+		t.Errorf("expected node1 to be in the list")
+	}
+	if nodes[0] != node2 && nodes[1] != node2 {
+		t.Errorf("expected node2 to be in the list")
+	}
+}
+
+func TestPartitionedPartitions(t *testing.T) {
 	partitionCount := 1024
 	maxDifference := 100
 
 	p := New(fnv.New64(), 1.25).Partitioned(partitionCount)
 
-	p.Add("node1", 100)
-	p.Add("node2", 200)
+	node1 := p.Add("node1", 100)
+	node2 := p.Add("node2", 200)
 
-	set1 := p.Partitions("node1")
-	set2 := p.Partitions("node2")
+	set1 := p.Partitions(node1)
+	set2 := p.Partitions(node2)
 
 	if len(set1)+len(set2) != partitionCount {
 		t.Errorf("expected all partitions to be assigned, got %d + %d", len(set1), len(set2))
@@ -27,14 +44,14 @@ func TestPartitions(t *testing.T) {
 	}
 
 	p.Remove("node1")
-	set2 = p.Partitions("node2")
+	set2 = p.Partitions(p.Get("node2"))
 	if len(set2) != partitionCount {
 		t.Errorf("expected all partitions to be assigned to node2, got %d", len(set2))
 	}
 
-	p.Add("node3", 100)
-	set2 = p.Partitions("node2")
-	set3 := p.Partitions("node3")
+	node3 := p.Add("node3", 100)
+	set2 = p.Partitions(node2)
+	set3 := p.Partitions(node3)
 
 	if len(set2)+len(set3) != partitionCount {
 		t.Errorf("expected all partitions to be assigned after re-adding node, got %d + %d", len(set2), len(set3))
@@ -45,7 +62,16 @@ func TestPartitions(t *testing.T) {
 	}
 }
 
-func TestLocateN(t *testing.T) {
+func TestPartitionedIndexByHash(t *testing.T) {
+	p := New(fnv.New64(), 1.25).Partitioned(1)
+
+	index := p.Index("mykey")
+	if index != 0 {
+		t.Errorf("expected index 0 for 1 partition, got %d", index)
+	}
+}
+
+func TestPartitionedLocateN(t *testing.T) {
 	p := New(fnv.New64(), 1.25).Partitioned(128)
 	p.Add("node1", 3)
 	p.Add("node2", 3)
@@ -56,11 +82,11 @@ func TestLocateN(t *testing.T) {
 		t.Errorf("expected 2 nodes, got %d", len(nodes))
 	}
 	if nodes[0] == nodes[1] {
-		t.Errorf("expected different nodes, got the same node '%s'", nodes[0].key)
+		t.Errorf("expected different nodes, got the same node '%s'", nodes[0].name)
 	}
 
 	if nodes[0] != p.Locate("mykey") {
-		t.Errorf("expected first located node to match Locate result, got '%s' and '%s'", nodes[0].key, p.Locate("mykey").key)
+		t.Errorf("expected first located node to match Locate result, got '%s' and '%s'", nodes[0].name, p.Locate("mykey").name)
 	}
 
 	nodes = p.LocateN("mykey", 5)

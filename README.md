@@ -13,11 +13,11 @@ Simple example to get started:
 ```go
 h := fnv.New64()       // should use xxhash for better distribution
 c := consh.New(h, 1.1) // create consh with load factor 1.1
-c.Add("a", 100)        // add node0 with weight 20
-c.Add("b", 100)        // the weight is the replication factor
-c.Add("c", 200)        // node c is twice more powerful
+c.Add("node0", 100)    // add node0 with weight 100
+c.Add("node1", 100)    // the weight is the replication factor
+c.Add("node2", 200)    // node c is twice more powerful
 
-resources := make([]string, 10)
+resources := make([]string, 100000) // create 100k resources
 
 for i := range len(resources) {
     resources[i] = strconv.Itoa(i)
@@ -27,12 +27,16 @@ allocations := c.AllocateMany(resources)
 
 for i := range resources {
     node := allocations[i]
-    fmt.Printf("%s -> %s\n", resources[i], node.Key())
+    fmt.Printf("%s -> %s\n", resources[i], node.Name())
 }
 
 for _, node := range c.List() {
-    fmt.Printf("node %s has %d resources\n", node.Key(), node.Load())
+    fmt.Printf("%s has %d resources\n", node.Name(), node.Load())
 }
+
+// node0 has 25200 resources
+// node1 has 25900 resources
+// node2 has 48900 resources
 ```
 
 ## Partitioned
@@ -43,14 +47,16 @@ Example of using partitioned consistent hashing:
 c := consh.New(fnv.New64(), 1.25)
 p := c.Partitioned(1024) // partitioned into 1024 partitions
 
-p.Add("a", 100)
-p.Add("b", 200)
+nodeA := p.Add("nodeA", 100)
+nodeB := p.Add("nodeB", 200)
 
-setA := p.Partitions("a") // get partitions of a
-setB := p.Partitions("b") // returns map[int]struct{}
+setA := p.Partitions(nodeA) // get set owned by nodeA
+setB := p.Partitions(nodeB) // returns map[int]struct{}
 
-println("node a has partitions:", len(setA))
-println("node b has partitions:", len(setB))
+fmt.Printf("nodeA has %d partitions\n", len(setA))
+fmt.Printf("nodeB has %d partitions\n", len(setB))
+// nodeA has 314 partitions
+// nodeB has 710 partitions
 ```
 
 ## Safety
@@ -67,9 +73,9 @@ This library aims to be as efficient as possible and yet keep the code simple an
 goos: linux
 goarch: amd64
 cpu: Intel(R) Core(TM) i5-8500 CPU @ 3.00GHz
-BenchmarkAddRemove-6      304366                 3932 ns/op
-BenchmarkLocate-6       12159878                97.33 ns/op
-BenchmarkLocateN-6       5523733                218.2 ns/op
+BenchmarkAddRemove-6      170347              6863 ns/op
+BenchmarkLocate-6       12400095             95.78 ns/op
+BenchmarkLocateN-6       5644785             222.3 ns/op
 ```
 
 ## Tests
@@ -80,7 +86,7 @@ Other tests cover basic functionality of adding, removing nodes and locating res
 
 ## Roadmap
 
-- Add more tests to improve coverage and verify correctness.
+- Add more tests to verify correctness.
 - Optimize performance further.
 - Add more examples and documentation.
 - Improve `LocateN` for better accuracy.

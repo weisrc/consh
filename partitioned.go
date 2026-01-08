@@ -28,22 +28,22 @@ func NewPartitioned(consh *Consh, n int) *Partitioned {
 	}
 }
 
-// Add a new physical node with key and a weight.
+// Add a new physical node with name and a weight.
 // See Consh.Add for additional details.
-func (p *Partitioned) Add(key string, weight int) {
-	p.consh.Add(key, weight)
+func (p *Partitioned) Add(name string, weight int) *Node {
 	p.allocations = nil
+	return p.consh.Add(name, weight)
 }
 
-// Remove a physical node by its key.
-func (p *Partitioned) Remove(key string) {
-	p.consh.Remove(key)
+// Remove a physical node by its name.
+func (p *Partitioned) Remove(name string) *Node {
 	p.allocations = nil
+	return p.consh.Remove(name)
 }
 
-// Get a physical node by its key.
-func (p *Partitioned) Get(key string) *Node {
-	return p.consh.Get(key)
+// Get a physical node with the given name.
+func (p *Partitioned) Get(name string) *Node {
+	return p.consh.Get(name)
 }
 
 // List all physical nodes.
@@ -51,12 +51,12 @@ func (p *Partitioned) List() []*Node {
 	return p.consh.List()
 }
 
-// Get the partition index for a given hash.
+// Get the partition index for a resource by its hash.
 func (p *Partitioned) IndexByHash(hash uint64) int {
 	return int(hash % uint64(len(p.hashes)))
 }
 
-// Get the partition index for a given key.
+// Get the partition index for a resource by its key.
 func (p *Partitioned) Index(key string) int {
 	return p.IndexByHash(p.consh.HashString(key))
 }
@@ -66,12 +66,12 @@ func (p *Partitioned) Owner(index int) *Node {
 	return p.Allocations()[index]
 }
 
-// Locate the physical node for a given hash.
+// Locate the physical node for a resource by its hash.
 func (p *Partitioned) LocateByHash(hash uint64) *Node {
 	return p.Owner(p.IndexByHash(hash))
 }
 
-// Locate N physical nodes for a given hash.
+// Locate N physical nodes for a resource by its hash.
 func (p *Partitioned) LocateNByHash(hash uint64, n int) []*Node {
 	index := p.IndexByHash(hash)
 	nodes := make([]*Node, 0, len(p.consh.nodes))
@@ -92,12 +92,12 @@ func (p *Partitioned) LocateNByHash(hash uint64, n int) []*Node {
 	return nodes
 }
 
-// Locate the physical node for a key.
+// Locate the physical node for a resource by its key.
 func (p *Partitioned) Locate(key string) *Node {
 	return p.LocateByHash(p.consh.HashString(key))
 }
 
-// Locate N physical nodes for a key.
+// Locate N physical nodes for a resource by its key.
 func (p *Partitioned) LocateN(key string, n int) []*Node {
 	return p.LocateNByHash(p.consh.HashString(key), n)
 }
@@ -113,13 +113,9 @@ func (p *Partitioned) Allocations() []*Node {
 	return p.allocations
 }
 
-// Get the set of partition indices owned by the physical node for a given key.
-func (p *Partitioned) Partitions(key string) map[int]struct{} {
+// Get the set of partition indices owned by the physical node.
+func (p *Partitioned) Partitions(node *Node) map[int]struct{} {
 	partitions := make(map[int]struct{})
-	node := p.consh.Get(key)
-	if node == nil {
-		return partitions
-	}
 	for i, assignedNode := range p.Allocations() {
 		if node == assignedNode {
 			partitions[i] = struct{}{}
